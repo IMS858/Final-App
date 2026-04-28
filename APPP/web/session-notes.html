@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Session Notes · IMS Coach OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/ims-ui.css">
+<style>
+  .sn-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+    align-items: start;
+  }
+  .sn-empty {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--cream-faint);
+  }
+  .sn-empty .display { margin-bottom: 8px; }
+  .sn-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sn-item {
+    background: var(--navy-soft);
+    border: 1px solid var(--divider);
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .sn-item .key {
+    font-family: var(--serif);
+    font-size: 16px;
+    color: var(--cream);
+  }
+  .sn-item .meta { font-size: 11px; color: var(--cream-faint); margin-top: 2px; }
+  .sn-item .body { font-size: 12px; color: var(--cream-dim); margin-top: 6px; }
+  .sn-item .when {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--cream-faint);
+  }
+  .sn-info-card {
+    background: var(--navy-soft);
+    border: 1px solid var(--divider);
+    padding: 22px 24px;
+  }
+  .sn-info-card h3 {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--cream);
+    margin-bottom: 10px;
+  }
+  .sn-info-card h3 em { font-style: italic; color: var(--sky-light); }
+  .sn-info-card .field-row {
+    font-size: 12px;
+    padding: 6px 0;
+    color: var(--cream-dim);
+    border-bottom: 1px solid var(--divider);
+  }
+  .sn-info-card .field-row:last-child { border-bottom: 0; }
+  .sn-info-card .field-row strong {
+    color: var(--cream);
+    font-weight: 500;
+    margin-right: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="ims-app">
+  <aside data-ims-sidebar></aside>
+  <main class="ims-main">
+    <header class="ims-topbar">
+      <div class="crumbs">
+        <span class="crumb-eyebrow">PLANS</span>
+        <h1 class="crumb-title">Session <em>Notes</em>.</h1>
+      </div>
+      <span class="env-badge">Local storage · Phase 1</span>
+    </header>
+
+    <div class="ims-canvas">
+      <div class="sn-grid">
+
+        <section>
+          <div class="card" style="margin-bottom:18px;">
+            <span class="eyebrow">All notes</span>
+            <p class="help" style="margin-top:6px;">
+              Session notes are added from <a href="/program-review">Program Review</a>
+              against a specific session card. Each note carries forward into the next block
+              so the coach can see what changed last time.
+            </p>
+          </div>
+
+          <div id="sn-list" class="sn-list">
+            <div class="sn-empty">
+              <div class="display"><em>No notes yet</em></div>
+              <p class="help">Open a program in <a href="/program-review">Program Review</a> and click <strong>Add Session Note</strong> on any session card.</p>
+            </div>
+          </div>
+        </section>
+
+        <aside>
+          <div class="sn-info-card">
+            <h3>Note <em>schema</em></h3>
+            <p class="help" style="margin-bottom:12px;font-size:12px;">
+              Forward-compatible with the future <code style="font-family:monospace;color:var(--sky-light);">session_notes</code> table.
+            </p>
+            <div class="field-row"><strong>program_id</strong> e.g. amanda_patterson_block1</div>
+            <div class="field-row"><strong>session_key</strong> w&lt;week&gt;_s&lt;sessionIdx&gt;</div>
+            <div class="field-row"><strong>completed</strong> bool</div>
+            <div class="field-row"><strong>observation</strong> text</div>
+            <div class="field-row"><strong>loads</strong> text</div>
+            <div class="field-row"><strong>pain</strong> text</div>
+            <div class="field-row"><strong>energy</strong> int 1–5</div>
+            <div class="field-row"><strong>changes</strong> text</div>
+            <div class="field-row"><strong>next</strong> text</div>
+            <div class="field-row"><strong>retest</strong> bool</div>
+            <div class="field-row"><strong>updatedAt</strong> ISO timestamp</div>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/assets/ims-nav.js"></script>
+<script src="/assets/ims-storage.js"></script>
+<script>
+  // Aggregate every locally-stored session note across programs and render.
+  (function () {
+    const wrap = document.getElementById('sn-list');
+    const all = (function getAll() {
+      try {
+        const raw = localStorage.getItem('ims.sessionNotes');
+        return raw ? JSON.parse(raw) : {};
+      } catch (_) {
+        return {};
+      }
+    })();
+
+    const flat = [];
+    Object.entries(all).forEach(([programId, sessions]) => {
+      Object.entries(sessions || {}).forEach(([sKey, note]) => {
+        flat.push({ programId, sKey, note });
+      });
+    });
+
+    if (!flat.length) return; // keep empty state
+
+    flat.sort((a, b) =>
+      String(b.note.updatedAt || '').localeCompare(String(a.note.updatedAt || ''))
+    );
+
+    const esc = (s) =>
+      String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    wrap.innerHTML = flat
+      .map(({ programId, sKey, note }) => {
+        const completed = note.completed
+          ? '<span class="chip chip-complete">Done</span>'
+          : '<span class="chip chip-pending">Open</span>';
+        const retest = note.retest ? '<span class="chip chip-warn">Retest</span>' : '';
+        const summary = (note.observation || note.next || note.changes || '')
+          .toString()
+          .slice(0, 220);
+        return `
+          <div class="sn-item">
+            <div>
+              <div class="key">${esc(programId)} <em style="font-style:italic;color:var(--sky-light);">${esc(
+                sKey
+              )}</em></div>
+              <div class="meta">${completed} ${retest} ${
+                note.energy ? '· Energy ' + esc(note.energy) : ''
+              }</div>
+              ${summary ? `<div class="body">${esc(summary)}${
+                summary.length === 220 ? '…' : ''
+              }</div>` : ''}
+            </div>
+            <div class="when">${
+              note.updatedAt ? new Date(note.updatedAt).toLocaleString() : ''
+            }</div>
+          </div>
+        `;
+      })
+      .join('');
+  })();
+</script>
+</body>
+</html>
