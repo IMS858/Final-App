@@ -9,17 +9,38 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/ims-ui.css">
 
-<!-- Tailwind via CDN · the calendar JSX uses Tailwind utility classes -->
+<!-- Tailwind via CDN with strong preflight so the calendar gets clean baseline -->
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { corePlugins: { preflight: true } };
+</script>
 
 <style>
+  /* Cancel ims-ui.css's universal reset INSIDE the calendar root so
+     Tailwind's preflight + the calendar's spacing render correctly. */
   .ims-canvas { padding: 0; }
   #cal-root {
     min-height: calc(100vh - var(--shell-topbar));
     background: #0f172a;
     color: #e2e8f0;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   }
   #cal-root * { box-sizing: border-box; }
+  #cal-root ol, #cal-root ul { list-style: revert; padding-left: revert; }
+  #cal-root button, #cal-root input, #cal-root select, #cal-root textarea {
+    font: inherit;
+    color: inherit;
+  }
+  #cal-root h1, #cal-root h2, #cal-root h3,
+  #cal-root h4, #cal-root h5, #cal-root h6 {
+    font-size: revert;
+    font-weight: revert;
+    margin: revert;
+  }
+  #cal-root p { margin: revert; }
+  #cal-root, #cal-root * {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
   .cal-fallback {
     padding: 32px;
     color: var(--cream-dim);
@@ -53,8 +74,7 @@
 
 <script src="/assets/ims-nav.js"></script>
 
-<!-- Pre-built calendar bundle: React + ReactDOM + lucide-react + JSX baked in.
-     No CDN dependencies, no in-browser Babel, no importmap. -->
+<!-- Pre-built calendar bundle: React + ReactDOM + lucide-react + JSX baked in. -->
 <script src="/assets/ims-master-calendar.bundle.js"></script>
 
 </body>
